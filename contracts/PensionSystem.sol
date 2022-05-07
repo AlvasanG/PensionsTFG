@@ -17,8 +17,8 @@ contract PensionSystem is ReentrancyGuard {
     mapping(address => uint8) public isPensionerCreated;
     address payable[] public pensionerList;
 
-    mapping(address => uint256) private pensionerAmount;
-    address[] private pensioners;
+    mapping(address => uint256) private _pensionerAmount;
+    address[] private _pensioners;
 
     // Functionality based events
 
@@ -86,7 +86,7 @@ contract PensionSystem is ReentrancyGuard {
         );
         require(msg.value >= 0, "Cannot contribute with a negative value");
         balance += msg.value;
-        user.addContribution(msg.value);
+        pensioner.addContribution(msg.value);
     }
 
     /// @notice Calculates the state of the pension system
@@ -107,7 +107,7 @@ contract PensionSystem is ReentrancyGuard {
                 pensioner.finishPensionTime(),
                 pensioner.totalContributedAmount()
             );
-            if (!pensioner.isUserRetired()) {
+            if (!pensioner.isPensionerRetired()) {
                 continue;
             } else if (pensioner.finishPensionTime() < block.timestamp) {
                 continue;
@@ -149,18 +149,18 @@ contract PensionSystem is ReentrancyGuard {
             }
             totalToPay += pensionerPayout;
 
-            pensioners.push(pensionerAdd);
-            pensionerAmount[pensionerAdd] = pensionerPayout;
+            _pensioners.push(pensionerAdd);
+            _pensionerAmount[pensionerAdd] = pensionerPayout;
         }
 
         balance -= totalToPay;
-        for (uint256 i = 0; i < pensioners.length; i++) {
-            address pensionerAdd = pensioners[i];
-            uint256 amount = pensionerAmount[pensionerAdd];
+        for (uint256 i = 0; i < _pensioners.length; i++) {
+            address pensionerAdd = _pensioners[i];
+            uint256 amount = _pensionerAmount[pensionerAdd];
             payable(pensionerAdd).transfer(amount);
-            delete pensionerAmount[pensionerAdd];
+            delete _pensionerAmount[pensionerAdd];
         }
 
-        delete pensioners;
+        delete _pensioners;
     }
 }
