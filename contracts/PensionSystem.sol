@@ -23,8 +23,8 @@ contract PensionSystem is ReentrancyGuard {
     // Functionality based events
 
     // Testing based events
-    event Deposited(uint256 totalPayedSincePayout);
-    event Paid(uint256 totalPayedSincePayout, uint256 totalContributed);
+    event Deposited(uint256 agreggatedContributions);
+    event Paid(uint256 agreggatedContributions, uint256 totalContributed);
     event UserInfo(
         uint256 currentBlock,
         bool isRetired,
@@ -96,7 +96,8 @@ contract PensionSystem is ReentrancyGuard {
     /// @dev The pensioner must have funded the system
     function calculateState() public nonReentrant {
         uint256 totalToPay = 0;
-        uint256 totalPayedSincePayout = 0;
+        uint256 agreggatedContributions = 0;
+        uint256 totalToBeDistributed = getTotalToBeDistributed();
 
         for (uint256 i = 0; i < pensionerList.length; i++) {
             address pensionerAdd = pensionerList[i];
@@ -114,14 +115,16 @@ contract PensionSystem is ReentrancyGuard {
             } else if (pensioner.totalContributedAmount() == 0) {
                 continue;
             }
-            totalPayedSincePayout += pensioner.totalContributedAmount();
+            agreggatedContributions +=
+                (pensioner.totalContributedAmount() * PROPORTION_FACTOR) /
+                pensioner.benefitUntilTime();
             emit Paid(
-                totalPayedSincePayout,
+                agreggatedContributions,
                 pensioner.totalContributedAmount()
             );
         }
 
-        emit Deposited(totalPayedSincePayout);
+        emit Deposited(agreggatedContributions);
 
         uint256 totalSplittedPayout = 0;
         for (uint256 i = 0; i < pensionerList.length; i++) {
@@ -137,13 +140,13 @@ contract PensionSystem is ReentrancyGuard {
 
             uint256 pensionerPayout = 0;
             if (i == pensionerList.length - 1) {
-                pensionerPayout = balance - totalSplittedPayout;
+                pensionerPayout = totalToBeDistributed - totalSplittedPayout;
             } else {
-                uint256 contributedProportionByUser = (pensioner
+                uint256 contributedProportionByUser = ((pensioner
                     .totalContributedAmount() * PROPORTION_FACTOR) /
-                    totalPayedSincePayout;
+                    pensioner.benefitUntilTime()) / agreggatedContributions;
                 pensionerPayout =
-                    (contributedProportionByUser * balance) /
+                    (contributedProportionByUser * totalToBeDistributed) /
                     PROPORTION_FACTOR;
                 totalSplittedPayout += pensionerPayout;
             }
@@ -162,5 +165,38 @@ contract PensionSystem is ReentrancyGuard {
         }
 
         delete _pensioners;
+    }
+
+    /// @notice Calculates the total to be distributed based on the ratio of pensioners and contributors
+    /// @dev Only takes into account active pensioners and active contributors
+    /// @dev The value is given by the formula (lambda * (balance * 0.90))
+    /// @dev Lambda is the ratio
+    /// @dev The balance is not 100% given possible gas costs
+    function getTotalToBeDistributed() private view returns (uint256) {
+        uint256 lambda = 0;
+        uint256 numberOfContributors = 0;
+        uint256 numberOfPensioners = 0;
+        for (uint256 i = 0; i < pensionerList.length; i++) {
+            address pensionerAdd = pensionerList[i];
+            Pensioner pensioner = pensioners[pensionerAdd];
+            if (pensioner.isPensionerRetired()) {
+                if (pensioner.finishPensionTime() >= block.timestamp) {
+                    numberOfPensioners++;
+                }
+            } else if (pensioner.totalContributedAmount() > 0) {
+                numberOfContributors++;
+            }
+        }
+        if (numberOfPensioners == 0) {
+            return 0;
+        }
+        if (numberOfContributors == 0) {
+            return (balance * 20) / 100;
+        }
+        if (numberOfContributors > numberOfPensioners) {
+            return (balance * 90) / 100;
+        }
+        lambda = (numberOfContributors * 100) / numberOfPensioners;
+        return (((balance * 90) / 100) * lambda) / 100;
     }
 }
