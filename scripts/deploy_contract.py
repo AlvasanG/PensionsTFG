@@ -22,7 +22,7 @@ def deploy_pension():
     return pension
 
 
-def createUser(indexAccount, extraSeconds=1):
+def createPensioner(indexAccount, extraSeconds=1):
     account = get_account(indexAccount)
     pension = PensionSystem[-1]
     # today = int((datetime.now() + timedelta(days=7300)).timestamp())
@@ -38,7 +38,7 @@ def fundPension(indexAccount, value):
     starting_tx.wait(1)
 
 
-def retireUser(indexAccount):
+def retirePensioner(indexAccount):
     account = get_account(indexAccount)
     pension = PensionSystem[-1]
     starting_tx = pension.retirePensioner({"from": account})
@@ -51,42 +51,3 @@ def calculateState():
     starting_tx = pension.calculateState({"from": account})
     print(starting_tx)
     starting_tx.wait(1)
-
-
-def createMultipleAccounts():
-    createUser(0, 100000000)
-    createUser(1, 100000000)
-    createUser(2, 100000000)
-
-
-def fundMultiple():
-    fundPension(0, 5 * 10 ** 18)
-    print(f"\nPAGAMOS PARA LA PENSION {PensionSystem[-1].balance()}\n")
-
-    fundPension(1, 1 * 10 ** 18)
-    print(f"\nPAGAMOS PARA LA PENSION {PensionSystem[-1].balance()}\n")
-
-    fundPension(2, 1 * 10 ** 18)
-    print(f"\nPAGAMOS PARA LA PENSION {PensionSystem[-1].balance()}\n")
-
-    fundPension(0, 1 * 10 ** 18)
-    print(f"\nPAGAMOS PARA LA PENSION {PensionSystem[-1].balance()}\n")
-
-
-def main():
-    deploy_pension()
-
-    createMultipleAccounts()
-
-    fundMultiple()
-
-    calculateState()
-    print("\nCALCULAMOS EL ESTADO DE LA PENSION\n\n")
-    print(PensionSystem[-1].balance())
-
-    # print("Waiting 10 seconds")
-    # time.sleep(10)
-
-    # calculateState()
-    # print("\nCALCULAMOS EL ESTADO DE LA PENSION\n\n")
-    # print(PensionAccount[-1].balance())
