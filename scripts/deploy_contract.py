@@ -22,12 +22,12 @@ def deploy_pension():
     return pension
 
 
-def createPensioner(indexAccount, extraSeconds=1):
+def createPensioner(indexAccount, extraSeconds=1, benefitWindow=1):
     account = get_account(indexAccount)
     pension = PensionSystem[-1]
     # today = int((datetime.now() + timedelta(days=7300)).timestamp())
     today = int((datetime.now() + timedelta(seconds=extraSeconds)).timestamp())
-    starting_tx = pension.createPensioner(today, {"from": account})
+    starting_tx = pension.createPensioner(today, benefitWindow, {"from": account})
     starting_tx.wait(1)
 
 
@@ -51,3 +51,40 @@ def calculateState():
     starting_tx = pension.calculateState({"from": account})
     print(starting_tx)
     starting_tx.wait(1)
+
+
+def createMultipleAccounts():
+    createPensioner(0, 100000000, 100000000)
+    createPensioner(1, 100000000, 100000000)
+    createPensioner(2, 100000000, 100000000)
+
+
+def fundMultiple():
+    fundPension(0, 5 * 10 ** 18)
+    print(f"\nPAGAMOS PARA LA PENSION {PensionSystem[-1].balance()}\n")
+
+    fundPension(1, 1 * 10 ** 18)
+    print(f"\nPAGAMOS PARA LA PENSION {PensionSystem[-1].balance()}\n")
+
+    fundPension(2, 1 * 10 ** 18)
+    print(f"\nPAGAMOS PARA LA PENSION {PensionSystem[-1].balance()}\n")
+
+    fundPension(0, 1 * 10 ** 18)
+    print(f"\nPAGAMOS PARA LA PENSION {PensionSystem[-1].balance()}\n")
+
+
+def main():
+    pension = deploy_pension()
+    createPensioner(0, 100000000, 10000000)
+    createPensioner(1, 100000000, 100000000)
+    createPensioner(2, 100000000, 100000000)
+    fundPension(0, 10 * 10 ** 18)
+    fundPension(1, 5 * 10 ** 18)
+    fundPension(2, 1 * 10 ** 18)
+    retirePensioner(0)
+    state_tx = pension.calculateState()
+    print("REPARTO")
+    print(state_tx.events)
+    state_tx = pension.calculateState()
+    print("REPARTO")
+    print(state_tx.events)

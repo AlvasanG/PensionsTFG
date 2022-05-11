@@ -20,18 +20,6 @@ contract PensionSystem is ReentrancyGuard {
     mapping(address => uint256) private _pensionerAmount;
     address[] private _pensioners;
 
-    // Functionality based events
-
-    // Testing based events
-    event Deposited(uint256 agreggatedContributions);
-    event Paid(uint256 agreggatedContributions, uint256 totalContributed);
-    event UserInfo(
-        uint256 currentBlock,
-        bool isRetired,
-        uint256 finishPensionTime,
-        uint256 totalContributed
-    );
-
     constructor() public ReentrancyGuard() {}
 
     /// @notice Creates a pensioner
@@ -102,12 +90,6 @@ contract PensionSystem is ReentrancyGuard {
         for (uint256 i = 0; i < pensionerList.length; i++) {
             address pensionerAdd = pensionerList[i];
             Pensioner pensioner = pensioners[pensionerAdd];
-            emit UserInfo(
-                block.timestamp,
-                pensioner.isPensionerRetired(),
-                pensioner.finishPensionTime(),
-                pensioner.totalContributedAmount()
-            );
             if (!pensioner.isPensionerRetired()) {
                 continue;
             } else if (pensioner.finishPensionTime() < block.timestamp) {
@@ -118,13 +100,7 @@ contract PensionSystem is ReentrancyGuard {
             agreggatedContributions +=
                 (pensioner.totalContributedAmount() * PROPORTION_FACTOR) /
                 pensioner.benefitUntilTime();
-            emit Paid(
-                agreggatedContributions,
-                pensioner.totalContributedAmount()
-            );
         }
-
-        emit Deposited(agreggatedContributions);
 
         uint256 totalSplittedPayout = 0;
         for (uint256 i = 0; i < pensionerList.length; i++) {
@@ -142,12 +118,14 @@ contract PensionSystem is ReentrancyGuard {
             if (i == pensionerList.length - 1) {
                 pensionerPayout = totalToBeDistributed - totalSplittedPayout;
             } else {
-                uint256 contributedProportionByUser = ((pensioner
+                uint256 contributedByPensioner = (pensioner
                     .totalContributedAmount() * PROPORTION_FACTOR) /
-                    pensioner.benefitUntilTime()) / agreggatedContributions;
+                    pensioner.benefitUntilTime();
+                uint256 contributedProportionByPensioner = contributedByPensioner /
+                        agreggatedContributions;
                 pensionerPayout =
-                    (contributedProportionByUser * totalToBeDistributed) /
-                    PROPORTION_FACTOR;
+                    contributedProportionByPensioner *
+                    totalToBeDistributed;
                 totalSplittedPayout += pensionerPayout;
             }
             totalToPay += pensionerPayout;
@@ -163,7 +141,6 @@ contract PensionSystem is ReentrancyGuard {
             payable(pensionerAdd).transfer(amount);
             delete _pensionerAmount[pensionerAdd];
         }
-
         delete _pensioners;
     }
 
