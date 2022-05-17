@@ -144,6 +144,20 @@ contract PensionSystem is ReentrancyGuard {
         delete _pensioners;
     }
 
+    function getPensionerList()
+        public
+        view
+        returns (address[] memory, Pensioner[] memory)
+    {
+        address[] memory mAddresses = new address[](pensionerList.length);
+        Pensioner[] memory mPensioners = new Pensioner[](pensionerList.length);
+        for (uint256 i = 0; i < pensionerList.length; i++) {
+            mAddresses[i] = pensionerList[i];
+            mPensioners[i] = pensioners[pensionerList[i]];
+        }
+        return (mAddresses, mPensioners);
+    }
+
     /// @notice Calculates the total to be distributed based on the ratio of pensioners and contributors
     /// @dev Only takes into account active pensioners and active contributors
     /// @dev The value is given by the formula (lambda * (balance * 0.90))

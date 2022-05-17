@@ -74,17 +74,6 @@ def fundMultiple():
 
 
 def main():
-    pension = deploy_pension()
-    createPensioner(0, 100000000, 10000000)
+    deploy_pension()
     createPensioner(1, 100000000, 100000000)
     createPensioner(2, 100000000, 100000000)
-    fundPension(0, 10 * 10 ** 18)
-    fundPension(1, 5 * 10 ** 18)
-    fundPension(2, 1 * 10 ** 18)
-    retirePensioner(0)
-    state_tx = pension.calculateState()
-    print("REPARTO")
-    print(state_tx.events)
-    state_tx = pension.calculateState()
-    print("REPARTO")
-    print(state_tx.events)
