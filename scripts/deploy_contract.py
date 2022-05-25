@@ -38,10 +38,11 @@ def fundPension(indexAccount, value):
     starting_tx.wait(1)
 
 
-def retirePensioner(indexAccount):
+def retirePensioner(indexAccount, extraSeconds=1):
     account = get_account(indexAccount)
     pension = PensionSystem[-1]
-    starting_tx = pension.retirePensioner({"from": account})
+    today = int((datetime.now() + timedelta(seconds=extraSeconds)).timestamp())
+    starting_tx = pension.retirePensioner(today, {"from": account})
     starting_tx.wait(1)
 
 
@@ -75,5 +76,6 @@ def fundMultiple():
 
 def main():
     deploy_pension()
+    calculateState()
     # createPensioner(1, 100000000, 100000000)
     # createPensioner(2, 100000000, 100000000)

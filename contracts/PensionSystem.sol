@@ -12,7 +12,6 @@ import "./Pensioner.sol";
 contract PensionSystem is ReentrancyGuard {
     uint256 private PROPORTION_FACTOR = 10**18;
 
-    uint256 public balance;
     mapping(address => Pensioner) public pensioners;
     mapping(address => uint8) public isPensionerCreated;
     address payable[] public pensionerList;
@@ -44,23 +43,39 @@ contract PensionSystem is ReentrancyGuard {
         pensionerList.push(msg.sender);
     }
 
-    /// @notice Retires a pensioner at the current block timestamp
+    /// @notice Changes a pensioner retirement time
     /// @dev The pensioner must exist
+    /// @dev The date of retirement must be a future one
     /// @dev The pensioner must not be retired
-    function retirePensioner() public {
+    function setRetirementTime(uint256 retireDate) public {
         require(isPensionerCreated[msg.sender] > 0, "Pensioner does not exist");
+        require(retireDate >= block.timestamp, "Date must be a future one");
         Pensioner pensioner = pensioners[msg.sender];
         require(
             !pensioner.isPensionerRetired(),
             "Pensioner cannot retire after being retired"
         );
-        pensioners[msg.sender].setRetirementNow();
+        pensioners[msg.sender].setRetirement(retireDate);
+    }
+
+    /// @notice Changes a pensioner benefit duration
+    /// @dev The pensioner must exist
+    /// @dev The duration must be positive
+    /// @dev The pension must be active
+    function setBenefitDuration(uint256 benefitDuration) public {
+        require(isPensionerCreated[msg.sender] > 0, "Pensioner does not exist");
+        require(benefitDuration >= 0, "Duration must be greater than 0");
+        Pensioner pensioner = pensioners[msg.sender];
+        require(
+            pensioner.getFinishPensionTime() >= block.timestamp,
+            "Pensioner cannot increase benefit duration after it has expired"
+        );
+        pensioners[msg.sender].setRetirement(retireDate);
     }
 
     /// @notice Adds an amount to the pension attributable to a pensioner
     /// @dev The pensioner must exist
     /// @dev The pensioner must not be retired
-    /// @dev The contribution must be a nonnegative value
     function fundPension() public payable {
         require(isPensionerCreated[msg.sender] > 0, "Pensioner does not exist");
         Pensioner pensioner = pensioners[msg.sender];
@@ -68,12 +83,6 @@ contract PensionSystem is ReentrancyGuard {
             !pensioner.isPensionerRetired(),
             "Cannot contribute to a retired account"
         );
-        require(
-            pensioner.retireAtDate() >= block.timestamp,
-            "Cannot contribute to a retired account"
-        );
-        require(msg.value >= 0, "Cannot contribute with a negative value");
-        balance += msg.value;
         pensioner.addContribution(msg.value);
     }
 
@@ -91,61 +100,61 @@ contract PensionSystem is ReentrancyGuard {
         for (uint256 i = 0; i < pensionerList.length; i++) {
             address pensionerAdd = pensionerList[i];
             Pensioner pensioner = pensioners[pensionerAdd];
-            if (!pensioner.isPensionerRetired()) {
-                continue;
-            } else if (pensioner.getFinishPensionTime() < block.timestamp) {
-                continue;
-            } else if (pensioner.totalContributedAmount() == 0) {
-                continue;
+            if (
+                pensioner.isPensionerRetired() &&
+                pensioner.isInsideBenefitDuration() &&
+                pensioner.totalContributedAmount() > 0
+            ) {
+                agreggatedContributions +=
+                    (pensioner.totalContributedAmount() * PROPORTION_FACTOR) /
+                    pensioner.benefitDuration();
             }
-            agreggatedContributions +=
-                (pensioner.totalContributedAmount() * PROPORTION_FACTOR) /
-                pensioner.benefitDuration();
         }
 
         uint256 totalSplittedPayout = 0;
         for (uint256 i = 0; i < pensionerList.length; i++) {
             address pensionerAdd = pensionerList[i];
             Pensioner pensioner = pensioners[pensionerAdd];
-            if (!pensioner.isPensionerRetired()) {
-                continue;
-            } else if (pensioner.getFinishPensionTime() < block.timestamp) {
-                continue;
-            } else if (pensioner.totalContributedAmount() == 0) {
-                continue;
-            }
+            if (
+                pensioner.isPensionerRetired() &&
+                pensioner.isInsideBenefitDuration() &&
+                pensioner.totalContributedAmount() > 0
+            ) {
+                uint256 pensionerPayout = 0;
+                if (i == pensionerList.length - 1) {
+                    pensionerPayout =
+                        totalToBeDistributed -
+                        totalSplittedPayout;
+                } else {
+                    uint256 contributedByPensioner = (pensioner
+                        .totalContributedAmount() * PROPORTION_FACTOR) /
+                        pensioner.benefitDuration();
+                    uint256 contributedProportionByPensioner = contributedByPensioner /
+                            agreggatedContributions;
+                    pensionerPayout =
+                        contributedProportionByPensioner *
+                        totalToBeDistributed;
+                    totalSplittedPayout += pensionerPayout;
+                }
+                totalToPay += pensionerPayout;
 
-            uint256 pensionerPayout = 0;
-            if (i == pensionerList.length - 1) {
-                pensionerPayout = totalToBeDistributed - totalSplittedPayout;
-            } else {
-                uint256 contributedByPensioner = (pensioner
-                    .totalContributedAmount() * PROPORTION_FACTOR) /
-                    pensioner.benefitDuration();
-                uint256 contributedProportionByPensioner = contributedByPensioner /
-                        agreggatedContributions;
-                pensionerPayout =
-                    contributedProportionByPensioner *
-                    totalToBeDistributed;
-                totalSplittedPayout += pensionerPayout;
+                _pensioners.push(pensionerAdd);
+                _pensionerAmount[pensionerAdd] = pensionerPayout;
             }
-            totalToPay += pensionerPayout;
-
-            _pensioners.push(pensionerAdd);
-            _pensionerAmount[pensionerAdd] = pensionerPayout;
         }
 
-        balance -= totalToPay;
         for (uint256 i = 0; i < _pensioners.length; i++) {
             address pensionerAdd = _pensioners[i];
             uint256 amount = _pensionerAmount[pensionerAdd];
-            payable(pensionerAdd).transfer(amount); // TODO: comprobar si es necesario o puedo asignarlo ya payable en cuando se declara el array
+            payable(pensionerAdd).transfer(amount);
             delete _pensionerAmount[pensionerAdd];
         }
         delete _pensioners;
     }
 
-    // TODO
+    /// @notice Returns the mapping of pensioners in 2 separate arrays, one for address and another for
+    /// @notice pensioner address
+    /// @dev It is a workaround since we cannot return a mapping directly
     function getPensionerList()
         public
         view
@@ -169,6 +178,7 @@ contract PensionSystem is ReentrancyGuard {
         uint256 lambda = 0;
         uint256 numberOfContributors = 0;
         uint256 numberOfPensioners = 0;
+        uint256 balance = address(this).balance;
         for (uint256 i = 0; i < pensionerList.length; i++) {
             address pensionerAdd = pensionerList[i];
             Pensioner pensioner = pensioners[pensionerAdd];

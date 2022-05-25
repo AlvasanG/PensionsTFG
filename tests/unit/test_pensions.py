@@ -80,9 +80,6 @@ def test_retired_pensioner_fund():
         pension.fundPension({"from": account, "value": 1})
 
 
-## Cannot test for negative, since EVM (Ethereum Virtual Machine) does not allow to send a negative value on "value" field ##
-
-
 def test_fund_zero():
     pension = deploy_pension()
     account = get_account()

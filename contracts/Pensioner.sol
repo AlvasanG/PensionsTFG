@@ -22,15 +22,20 @@ contract Pensioner {
     }
 
     /// @notice Retires a pensioner at the current block timestamp
-    /// @dev We substract one just in case block.timestamp doesnt change when performing the next operation
     function setRetirementNow() public {
-        retireAtDate = block.timestamp - 1;
+        setRetirement(block.timestamp);
     }
 
-    /// @notice Retires a pensioner at a given date
+    /// @notice Changes a pensioner retirement date
+    /// @dev We substract one just in case block.timestamp doesnt change when performing the next operation
     function setRetirement(uint256 retireDate) public {
         require(retireDate >= block.timestamp, "Date must be a future one");
-        retireAtDate = retireDate;
+        retireAtDate = retireDate - 1;
+    }
+
+    /// @notice Changes a pensioner benefit duration
+    function setBenefitDuration(uint256 _benefitDuration) public {
+        benefitDuration = _benefitDuration;
     }
 
     /// @notice Adds a contribution to the total amount contributed by the pensioner
@@ -51,5 +56,10 @@ contract Pensioner {
     /// @notice Returns whether a pensioner is retired or not
     function isPensionerRetired() public view returns (bool) {
         return retireAtDate <= block.timestamp;
+    }
+
+    /// @notice Returns whether a pension is inside his benefit duration
+    function isInsideBenefitDuration() public view returns (bool) {
+        return getFinishPensionTime() >= block.timestamp;
     }
 }
