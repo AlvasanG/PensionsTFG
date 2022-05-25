@@ -69,7 +69,7 @@ contract PensionSystem is ReentrancyGuard {
             "Cannot contribute to a retired account"
         );
         require(
-            pensioner.retireAtTime() >= block.timestamp,
+            pensioner.retireAtDate() >= block.timestamp,
             "Cannot contribute to a retired account"
         );
         require(msg.value >= 0, "Cannot contribute with a negative value");
@@ -83,6 +83,7 @@ contract PensionSystem is ReentrancyGuard {
     /// @dev The pensioner must have an active benefit window
     /// @dev The pensioner must have funded the system
     function calculateState() public nonReentrant {
+        // TODO: revisar que solo se ejecute cada 7/14/21/31 dias
         uint256 totalToPay = 0;
         uint256 agreggatedContributions = 0;
         uint256 totalToBeDistributed = getTotalToBeDistributed();
@@ -92,14 +93,14 @@ contract PensionSystem is ReentrancyGuard {
             Pensioner pensioner = pensioners[pensionerAdd];
             if (!pensioner.isPensionerRetired()) {
                 continue;
-            } else if (pensioner.finishPensionTime() < block.timestamp) {
+            } else if (pensioner.getFinishPensionTime() < block.timestamp) {
                 continue;
             } else if (pensioner.totalContributedAmount() == 0) {
                 continue;
             }
             agreggatedContributions +=
                 (pensioner.totalContributedAmount() * PROPORTION_FACTOR) /
-                pensioner.benefitUntilTime();
+                pensioner.benefitDuration();
         }
 
         uint256 totalSplittedPayout = 0;
@@ -108,7 +109,7 @@ contract PensionSystem is ReentrancyGuard {
             Pensioner pensioner = pensioners[pensionerAdd];
             if (!pensioner.isPensionerRetired()) {
                 continue;
-            } else if (pensioner.finishPensionTime() < block.timestamp) {
+            } else if (pensioner.getFinishPensionTime() < block.timestamp) {
                 continue;
             } else if (pensioner.totalContributedAmount() == 0) {
                 continue;
@@ -120,7 +121,7 @@ contract PensionSystem is ReentrancyGuard {
             } else {
                 uint256 contributedByPensioner = (pensioner
                     .totalContributedAmount() * PROPORTION_FACTOR) /
-                    pensioner.benefitUntilTime();
+                    pensioner.benefitDuration();
                 uint256 contributedProportionByPensioner = contributedByPensioner /
                         agreggatedContributions;
                 pensionerPayout =
@@ -138,12 +139,13 @@ contract PensionSystem is ReentrancyGuard {
         for (uint256 i = 0; i < _pensioners.length; i++) {
             address pensionerAdd = _pensioners[i];
             uint256 amount = _pensionerAmount[pensionerAdd];
-            payable(pensionerAdd).transfer(amount);
+            payable(pensionerAdd).transfer(amount); // TODO: comprobar si es necesario o puedo asignarlo ya payable en cuando se declara el array
             delete _pensionerAmount[pensionerAdd];
         }
         delete _pensioners;
     }
 
+    // TODO
     function getPensionerList()
         public
         view
@@ -171,7 +173,7 @@ contract PensionSystem is ReentrancyGuard {
             address pensionerAdd = pensionerList[i];
             Pensioner pensioner = pensioners[pensionerAdd];
             if (pensioner.isPensionerRetired()) {
-                if (pensioner.finishPensionTime() >= block.timestamp) {
+                if (pensioner.getFinishPensionTime() >= block.timestamp) {
                     numberOfPensioners++;
                 }
             } else if (pensioner.totalContributedAmount() > 0) {

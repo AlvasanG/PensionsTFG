@@ -75,5 +75,5 @@ def fundMultiple():
 
 def main():
     deploy_pension()
-    createPensioner(1, 100000000, 100000000)
-    createPensioner(2, 100000000, 100000000)
+    # createPensioner(1, 100000000, 100000000)
+    # createPensioner(2, 100000000, 100000000)
