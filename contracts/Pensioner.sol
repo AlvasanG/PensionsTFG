@@ -62,4 +62,8 @@ contract Pensioner {
     function isInsideBenefitDuration() public view returns (bool) {
         return getFinishPensionTime() >= block.timestamp;
     }
+
+    function getWeightedContribution() public view returns (uint256) {
+        return totalContributedAmount / benefitDuration;
+    }
 }

@@ -10,8 +10,6 @@ import "./Pensioner.sol";
 /// @dev The use of a PROPORTION_FACTOR is to workaround the non existance of floating numbers
 /// @notice All timestamps are expressed using Unix time https://en.wikipedia.org/wiki/Unix_time
 contract PensionSystem is ReentrancyGuard {
-    uint256 private PROPORTION_FACTOR = 10**18;
-
     mapping(address => Pensioner) public pensioners;
     mapping(address => uint8) public isPensionerCreated;
     address payable[] public pensionerList;
@@ -58,6 +56,19 @@ contract PensionSystem is ReentrancyGuard {
         pensioners[msg.sender].setRetirement(retireDate);
     }
 
+    /// @notice Changes a pensioner retirement time for now
+    /// @dev The pensioner must exist
+    /// @dev The pensioner must not be retired
+    function setRetirementTimeNow() public {
+        require(isPensionerCreated[msg.sender] > 0, "Pensioner does not exist");
+        Pensioner pensioner = pensioners[msg.sender];
+        require(
+            !pensioner.isPensionerRetired(),
+            "Pensioner cannot retire after being retired"
+        );
+        pensioners[msg.sender].setRetirementNow();
+    }
+
     /// @notice Changes a pensioner benefit duration
     /// @dev The pensioner must exist
     /// @dev The duration must be positive
@@ -70,7 +81,7 @@ contract PensionSystem is ReentrancyGuard {
             pensioner.getFinishPensionTime() >= block.timestamp,
             "Pensioner cannot increase benefit duration after it has expired"
         );
-        pensioners[msg.sender].setRetirement(retireDate);
+        pensioners[msg.sender].setBenefitDuration(benefitDuration);
     }
 
     /// @notice Adds an amount to the pension attributable to a pensioner
@@ -93,7 +104,6 @@ contract PensionSystem is ReentrancyGuard {
     /// @dev The pensioner must have funded the system
     function calculateState() public nonReentrant {
         // TODO: revisar que solo se ejecute cada 7/14/21/31 dias
-        uint256 totalToPay = 0;
         uint256 agreggatedContributions = 0;
         uint256 totalToBeDistributed = getTotalToBeDistributed();
 
@@ -105,13 +115,11 @@ contract PensionSystem is ReentrancyGuard {
                 pensioner.isInsideBenefitDuration() &&
                 pensioner.totalContributedAmount() > 0
             ) {
-                agreggatedContributions +=
-                    (pensioner.totalContributedAmount() * PROPORTION_FACTOR) /
-                    pensioner.benefitDuration();
+                agreggatedContributions += pensioner.getWeightedContribution();
             }
         }
 
-        uint256 totalSplittedPayout = 0;
+        uint256 totalSplitPayout = 0;
         for (uint256 i = 0; i < pensionerList.length; i++) {
             address pensionerAdd = pensionerList[i];
             Pensioner pensioner = pensioners[pensionerAdd];
@@ -122,21 +130,15 @@ contract PensionSystem is ReentrancyGuard {
             ) {
                 uint256 pensionerPayout = 0;
                 if (i == pensionerList.length - 1) {
-                    pensionerPayout =
-                        totalToBeDistributed -
-                        totalSplittedPayout;
+                    pensionerPayout = totalToBeDistributed - totalSplitPayout;
                 } else {
-                    uint256 contributedByPensioner = (pensioner
-                        .totalContributedAmount() * PROPORTION_FACTOR) /
-                        pensioner.benefitDuration();
-                    uint256 contributedProportionByPensioner = contributedByPensioner /
-                            agreggatedContributions;
+                    uint256 contributedByPensioner = pensioner
+                        .getWeightedContribution();
                     pensionerPayout =
-                        contributedProportionByPensioner *
-                        totalToBeDistributed;
-                    totalSplittedPayout += pensionerPayout;
+                        (contributedByPensioner * totalToBeDistributed) /
+                        agreggatedContributions;
+                    totalSplitPayout += pensionerPayout;
                 }
-                totalToPay += pensionerPayout;
 
                 _pensioners.push(pensionerAdd);
                 _pensionerAmount[pensionerAdd] = pensionerPayout;

@@ -34,8 +34,7 @@ contract SavingsAccount {
     function transferFunds(uint256 amount, address toAccount) public payable {
         require(amount <= balanceOf[msg.sender]);
         balanceOf[msg.sender] -= amount;
-        (bool success, ) = toAccount.call{value: amount}("");
-        require(success, "Transfer failed");
+        payable(toAccount).transfer(amount);
     }
 
     /// @notice Return the balance of the account

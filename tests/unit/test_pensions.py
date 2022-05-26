@@ -41,7 +41,7 @@ def test_retire_existing_pensioner():
     retireAt = int((datetime.now() + timedelta(days=1)).timestamp())
     benefitWindow = int((datetime.now() + timedelta(days=365)).timestamp())
     pension.createPensioner(retireAt, benefitWindow, {"from": account})
-    pension.retirePensioner({"from": account})
+    pension.setRetirementTimeNow({"from": account})
     with pytest.raises(exceptions.VirtualMachineError):
         pension.fundPension({"from": account, "value": 1})
 
@@ -50,7 +50,7 @@ def test_retire_non_existing_pensioner():
     pension = deploy_pension()
     account = get_account()
     with pytest.raises(exceptions.VirtualMachineError):
-        pension.retirePensioner({"from": account})
+        pension.setRetirementTimeNow({"from": account})
 
 
 def test_fund_pension():
@@ -75,7 +75,7 @@ def test_retired_pensioner_fund():
     retireAt = int((datetime.now() + timedelta(days=1)).timestamp())
     benefitWindow = int((datetime.now() + timedelta(days=365)).timestamp())
     pension.createPensioner(retireAt, benefitWindow, {"from": account})
-    pension.retirePensioner({"from": account})
+    pension.setRetirementTimeNow({"from": account})
     with pytest.raises(exceptions.VirtualMachineError):
         pension.fundPension({"from": account, "value": 1})
 
