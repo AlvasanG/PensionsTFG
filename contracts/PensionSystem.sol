@@ -33,8 +33,8 @@ contract PensionSystem is ReentrancyGuard {
     /// @dev The address must not be already registered
     /// @dev The retirementTime must be a future date
     /// @param retirementTime Timestamp at which the new pensioner wants to retire
-    /// @param benefitWindowTime Timestamp representing the amount of time the pensioner will be elegible for benefits
-    function createPensioner(uint256 retirementTime, uint256 benefitWindowTime)
+    /// @param benefitDuration Timestamp representing the amount of time the pensioner will be elegible for benefits
+    function createPensioner(uint256 retirementTime, uint256 benefitDuration)
         public
     {
         require(
@@ -45,7 +45,7 @@ contract PensionSystem is ReentrancyGuard {
             isPensionerCreated[msg.sender] == 0,
             "Pensioner already exists"
         );
-        Pensioner pensioner = new Pensioner(retirementTime, benefitWindowTime);
+        Pensioner pensioner = new Pensioner(retirementTime, benefitDuration);
         pensioners[msg.sender] = pensioner;
         isPensionerCreated[msg.sender] = 1;
         pensionerList.push(msg.sender);
