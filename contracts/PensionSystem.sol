@@ -9,15 +9,25 @@ import "./Pensioner.sol";
 /// @dev This contract is intended to be run with Pensioner.sol
 /// @dev The use of a PROPORTION_FACTOR is to workaround the non existance of floating numbers
 /// @notice All timestamps are expressed using Unix time https://en.wikipedia.org/wiki/Unix_time
+/// @notice All durations are expressed in seconds
 contract PensionSystem is ReentrancyGuard {
     mapping(address => Pensioner) public pensioners;
     mapping(address => uint8) public isPensionerCreated;
     address payable[] public pensionerList;
+    uint256 public createdAtTime;
+    uint256 public lastPayoutDate;
+    uint256 public payoutInterval;
 
     mapping(address => uint256) private _pensionerAmount;
     address[] private _pensioners;
 
-    constructor() public ReentrancyGuard() {}
+    /// @notice Creates a pension system
+    /// @param _payoutInterval The interval at which the payouts will roll out
+    constructor(uint256 _payoutInterval) public ReentrancyGuard() {
+        createdAtTime = block.timestamp;
+        lastPayoutDate = createdAtTime;
+        payoutInterval = _payoutInterval;
+    }
 
     /// @notice Creates a pensioner
     /// @dev The address must not be already registered
@@ -103,7 +113,11 @@ contract PensionSystem is ReentrancyGuard {
     /// @dev The pensioner must have an active benefit window
     /// @dev The pensioner must have funded the system
     function calculateState() public nonReentrant {
-        // TODO: revisar que solo se ejecute cada 7/14/21/31 dias
+        if (lastPayoutDate + payoutInterval > block.timestamp) {
+            return;
+        } else {
+            lastPayoutDate = block.timestamp;
+        }
         uint256 agreggatedContributions = 0;
         uint256 totalToBeDistributed = getTotalToBeDistributed();
 
@@ -185,7 +199,7 @@ contract PensionSystem is ReentrancyGuard {
             address pensionerAdd = pensionerList[i];
             Pensioner pensioner = pensioners[pensionerAdd];
             if (pensioner.isPensionerRetired()) {
-                if (pensioner.getFinishPensionTime() >= block.timestamp) {
+                if (pensioner.isInsideBenefitDuration()) {
                     numberOfPensioners++;
                 }
             } else if (pensioner.totalContributedAmount() > 0) {

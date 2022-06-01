@@ -5,6 +5,7 @@ pragma solidity ^0.6.0;
 /// @author Alvaro Sánchez García
 /// @dev This contract is intended to be run with PensionSystem.sol
 /// @notice All timestamps are expressed using Unix time https://en.wikipedia.org/wiki/Unix_time
+/// @notice All durations are expressed in seconds
 contract Pensioner {
     uint256 public totalContributedAmount;
     uint256 public createdAtTime;

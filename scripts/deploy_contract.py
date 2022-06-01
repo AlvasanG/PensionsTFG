@@ -2,23 +2,16 @@ from tracemalloc import start
 from turtle import pensize
 from venv import create
 from scripts.helpful_scripts import get_account
-from brownie import PensionSystem, SavingsAccount, network
+from brownie import PensionSystem
 import time
 from datetime import datetime, timedelta
-
-# SAVINGS ACCOUNT #
-def deploy_savings():
-    account = get_account()
-    savings = SavingsAccount.deploy({"from": account})
-    print("Deployed savings account")
-    print(savings)
-    return savings
 
 
 # PENSION SYSTEM #
 def deploy_pension():
     account = get_account()
-    pension = PensionSystem.deploy({"from": account})
+    payoutInterval = 7 * 24 * 60 * 60
+    pension = PensionSystem.deploy(payoutInterval, {"from": account})
     return pension
 
 

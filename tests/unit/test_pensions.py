@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
-from brownie import PensionSystem, network, exceptions
+from brownie import exceptions
 from scripts.deploy_contract import deploy_pension
 from scripts.helpful_scripts import get_account
 import pytest
-import time
 
 
 def test_create_pensioner():
