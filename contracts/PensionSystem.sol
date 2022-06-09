@@ -81,11 +81,9 @@ contract PensionSystem is ReentrancyGuard {
 
     /// @notice Changes a pensioner benefit duration
     /// @dev The pensioner must exist
-    /// @dev The duration must be positive
-    /// @dev The pension must be active
+    /// @dev The pensioner must not be retired
     function setBenefitDuration(uint256 benefitDuration) public {
         require(isPensionerCreated[msg.sender] > 0, "Pensioner does not exist");
-        require(benefitDuration >= 0, "Duration must be greater than 0");
         Pensioner pensioner = pensioners[msg.sender];
         require(
             pensioner.getFinishPensionTime() >= block.timestamp,
