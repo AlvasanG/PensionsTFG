@@ -202,7 +202,6 @@ contract PensionSystem is ReentrancyGuard {
                 totalFundsContributors += pensioner.totalContributedAmount();
             }
         }
-        // check for zero
         if (
             totalFundsPensioners >= (threshold * totalFundsContributors) / 100
         ) {
