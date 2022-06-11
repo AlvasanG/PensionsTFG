@@ -89,12 +89,12 @@ def test_modify_duration_retired_pensioner():
     pension = deploy_pension()
     account = get_account()
     retireAt = int((datetime.now() + timedelta(seconds=1)).timestamp())
-    newbenefitWindow = int((datetime.now() + timedelta(seconds=120)).timestamp())
+    newBenefitWindow = int((datetime.now() + timedelta(seconds=120)).timestamp())
     benefitWindow = int((datetime.now() + timedelta(days=365)).timestamp())
     pension.createPensioner(retireAt, benefitWindow, {"from": account})
-    time.sleep(10)  # sleep until pensioner should be retired
+    time.sleep(2)
     with pytest.raises(exceptions.VirtualMachineError):
-        pension.setBenefitDuration(newbenefitWindow, {"from": account})
+        pension.setBenefitDuration(newBenefitWindow, {"from": account})
 
 
 def test_modify_duration_non_existing_pensioner():

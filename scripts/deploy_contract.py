@@ -1,9 +1,5 @@
-from tracemalloc import start
-from turtle import pensize
-from venv import create
 from scripts.helpful_scripts import get_account
-from brownie import PensionSystem
-import time
+from brownie import PensionSystem, network, config
 from datetime import datetime, timedelta
 
 
@@ -11,7 +7,11 @@ from datetime import datetime, timedelta
 def deploy_pension():
     account = get_account()
     payoutInterval = 7 * 24 * 60 * 60
-    pension = PensionSystem.deploy(payoutInterval, {"from": account})
+    pension = PensionSystem.deploy(
+        payoutInterval,
+        {"from": account},
+        publish_source=config["networks"][network.show_active()].get("verify", False),
+    )
     return pension
 
 

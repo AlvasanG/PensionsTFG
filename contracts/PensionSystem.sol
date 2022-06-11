@@ -86,8 +86,8 @@ contract PensionSystem is ReentrancyGuard {
         require(isPensionerCreated[msg.sender] > 0, "Pensioner does not exist");
         Pensioner pensioner = pensioners[msg.sender];
         require(
-            pensioner.getFinishPensionTime() >= block.timestamp,
-            "Pensioner cannot increase benefit duration after it has expired"
+            !pensioner.isPensionerRetired(),
+            "Pensioner cannot retire after being retired"
         );
         pensioners[msg.sender].setBenefitDuration(benefitDuration);
     }
