@@ -185,35 +185,33 @@ contract PensionSystem is ReentrancyGuard {
 
     /// @notice Calculates the total to be distributed based on the ratio of pensioners and contributors
     /// @dev Only takes into account active pensioners and active contributors
-    /// @dev The value is given by the formula (lambda * (balance * 0.90))
-    /// @dev Lambda is the ratio
-    /// @dev The balance is not 100% given possible gas costs
+    /// @dev The default value to be distributed is 90% of the contract balance
     function getTotalToBeDistributed() private view returns (uint256) {
-        uint256 lambda = 0;
-        uint256 numberOfContributors = 0;
-        uint256 numberOfPensioners = 0;
-        uint256 balance = address(this).balance;
+        uint256 totalFundsPensioners = 0;
+        uint256 totalFundsContributors = 0;
+        uint256 toDistribute = (address(this).balance * 90) / 100;
+        uint256 threshold = 20;
         for (uint256 i = 0; i < pensionerList.length; i++) {
             address pensionerAdd = pensionerList[i];
             Pensioner pensioner = pensioners[pensionerAdd];
             if (pensioner.isPensionerRetired()) {
                 if (pensioner.isInsideBenefitDuration()) {
-                    numberOfPensioners++;
+                    totalFundsPensioners += pensioner.totalContributedAmount();
                 }
             } else if (pensioner.totalContributedAmount() > 0) {
-                numberOfContributors++;
+                totalFundsContributors += pensioner.totalContributedAmount();
             }
         }
-        if (numberOfPensioners == 0) {
-            return 0;
+        // check for zero
+        if (
+            totalFundsPensioners >= (threshold * totalFundsContributors) / 100
+        ) {
+            return toDistribute;
+        } else {
+            return
+                ((toDistribute * totalFundsPensioners * 100) /
+                    totalFundsContributors) / threshold;
         }
-        if (numberOfContributors == 0) {
-            return (balance * 20) / 100;
-        }
-        if (numberOfContributors > numberOfPensioners) {
-            return (balance * 90) / 100;
-        }
-        lambda = (numberOfContributors * 100) / numberOfPensioners;
-        return (((balance * 90) / 100) * lambda) / 100;
+        return toDistribute;
     }
 }
